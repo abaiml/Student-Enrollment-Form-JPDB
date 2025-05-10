@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://login2explore.com/jpdb/resources/js/0.0.4/jpdb-commons.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+
+    <div class="main">
+
+            <h1 id="h1">Student Form</h1>
+        <div class="f">
+
+        
+        <form id="myform" onsubmit="put(event)" autocomplete="off">
+            <div class="input">
+                <label>Roll No.</label>
+                <input onchange="notice()" id="roll" type="number" name="Roll-No" required>
+            </div>
+            <div class="input">
+                <label>Full Name</label>
+                <input type="text" name="Full-Name" required>
+            </div>
+            <div class="input">
+                <label>Class</label>
+                <input type="number" name="Class" min="1" max="12" required>
+            </div>
+            <div class="input">
+                <label>Date of Birth</label>
+                <input type="datetime-local" name="Birth-Date" required>
+            </div>
+            <div class="input">
+                <label>Address</label>
+                <input type="text" name="Address" required>
+            </div>
+            <div class="input">
+                <label>Enrollment Date</label>
+                <input type="datetime-local" name="Enrollment-Date" required>
+            </div>
+            <div id="allbtn">
+                <button id="submit" class="btn" type="submit" disabled>Save</button>
+                <button  id="change" class="btn" disabled type="button">Update</button>
+                <button id="reset" class="btn" type="reset" disabled>Reset</button>
+            </div>
+            
+        </form>
+        </div>
+    </div>
+    <script>
+        const submitbtn=document.querySelector('#submit');
+        const changebtn=document.querySelector('#change');
+        const resetbtn=document.querySelector('#reset');
+        const token = "90934685|-31949205281995162|90956134";
+        const dbName = "STUDENT-TABLE";
+        const relName = "SCHOOL-DB";
+        const primarykey="Roll-No";
+        let current_rec_no=null;
+        document.getElementById("roll").focus();
+
+        function setButtonState(button, enabled) {
+            button.disabled = enabled;
+            button.style.backgroundColor = enabled ? 'rgba(46, 46, 46, 0.256)' : 'black';
+        }
+
+        
+        changebtn.addEventListener("click",async()=>{
+            const form= new FormData(document.querySelector('#myform'))
+            const jsonObj=Object.fromEntries(form.entries())
+            jsonObj['Roll-No']=Number(jsonObj['Roll-No'])
+            
+            if (jsonObj['Roll-No']!==0 && current_rec_no!==null){
+                const updatedrequest= createUPDATERecordRequest(token, JSON.stringify(jsonObj), dbName, relName, current_rec_no)
+                const updatedres=await executeCommandAsync(updatedrequest,"/api/iml")
+                alert(updatedres.message)
+                resetbtn.click();
+                setButtonState(submitbtn,true)
+                setButtonState(resetbtn,true)
+                setButtonState(changebtn,true)
+            }
+            else {
+                alert("Roll No is empty")
+            }
+            current_rec_no=null;
+            return;
+        })
+
+        function executeCommandAsync(reqString, apiEndPointUrl) {
+            const url = baseUrl + apiEndPointUrl;
+            return $.post(url, reqString)
+                .then(result => JSON.parse(result))
+                .catch(error => JSON.parse(error.responseText));
+        }
+
+        async function notice(){
+            const inputs=document.querySelectorAll('input')
+            inputs.forEach(input=>{
+                if (input.name!="Roll-No"){
+                    input.value='';
+                }
+            })
+            const id=document.getElementById('roll');
+            
+            const jsonstr={"Roll-No":Number(id.value)}
+            const getrequest=createGET_BY_KEYRequest(token,dbName,relName,JSON.stringify(jsonstr))
+
+            const getresponse=await executeCommandAsync(getrequest,"/api/irl")
+            
+            
+            if (getresponse.status===400){
+                setButtonState(submitbtn,false)
+                setButtonState(resetbtn,false)
+                
+            }
+            else{
+                const data_rec=JSON.parse(getresponse.data)
+                const data=data_rec.record
+               
+                Object.keys(data).forEach(value=>{
+                    document.querySelector(`input[name="${value}"]`).value=data[value]
+                })
+
+                current_rec_no=data_rec.rec_no;
+                setButtonState(changebtn,false)
+                setButtonState(resetbtn,false)
+                setButtonState(submitbtn,true)
+                 
+            }
+            
+           
+        }
+        
+        
+        async function put(event){
+            event.preventDefault()
+        
+            
+            const formData=new FormData(event.target)
+
+            const formObject = Object.fromEntries(formData.entries());
+            formObject["Roll-No"] = Number(formObject["Roll-No"]);
+            if (formObject['Roll-No']){
+                
+                const request = createSETRequest(token, JSON.stringify(formObject), dbName, relName, "PUT", primarykey);
+            
+                const response=await executeCommandAsync(request,"/api/iml/set")
+                alert(response.message);
+                resetbtn.click();
+                setButtonState(resetbtn,true)
+                setButtonState(submitbtn,true)
+                setButtonState(changebtn,true)
+                
+            }
+            else{
+
+                alert("Roll No. is empty");
+            }
+                    
+        }
+    </script>
+</body>
+</html>
