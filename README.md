@@ -40,7 +40,7 @@ Operations are driven by the primary key `Roll No.` to check for existing data a
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/student-enrollment-form.git
+   git clone https://github.com/abaiml/Student-Enrollment-Form-JPDB.git
    ```
 2. Navigate to the project folder:
    ```bash
@@ -67,5 +67,3 @@ git pull origin main
 - **Release Date:** May 2025
 
 ---
-
-Made with 💻 for academic submission.
