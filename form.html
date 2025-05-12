@@ -70,7 +70,13 @@
 
         
         changebtn.addEventListener("click",async()=>{
-            const form= new FormData(document.querySelector('#myform'))
+            const formele=document.querySelector('#myform');
+            
+            if (!formele.checkValidity()) {
+                alert("Please fill all required fields before updating.");
+                return;
+            }
+            const form= new FormData(formele)
             const jsonObj=Object.fromEntries(form.entries())
             jsonObj['Roll-No']=Number(jsonObj['Roll-No'])
             
@@ -79,13 +85,11 @@
                 const updatedres=await executeCommandAsync(updatedrequest,"/api/iml")
                 alert(updatedres.message)
                 resetbtn.click();
-                setButtonState(submitbtn,true)
-                setButtonState(resetbtn,true)
-                setButtonState(changebtn,true)
             }
-            else {
-                alert("Roll No is empty")
-            }
+           
+            setButtonState(submitbtn,true)
+            setButtonState(resetbtn,true)
+            setButtonState(changebtn,true)
             current_rec_no=null;
             return;
         })
@@ -115,6 +119,7 @@
             if (getresponse.status===400){
                 setButtonState(submitbtn,false)
                 setButtonState(resetbtn,false)
+                setButtonState(changebtn,true)
                 
             }
             else{
