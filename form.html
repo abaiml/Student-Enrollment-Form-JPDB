@@ -110,7 +110,7 @@
         // RESET logic: resets form inputs and button states
         resetbtn.addEventListener("click", () => {
             rollInput.disabled = false;
-            rollInput.focus();
+           
             setButtonState(submitbtn, true);
             setButtonState(changebtn, true);
             setButtonState(resetbtn, true);
@@ -120,6 +120,7 @@
             document.querySelectorAll('input').forEach(input => {
                 input.value = '';
             });
+            rollInput.focus();
         });
 
         // Utility function: handles API request with async/await
