@@ -52,48 +52,77 @@
         </form>
         </div>
     </div>
+    
     <script>
-        const submitbtn=document.querySelector('#submit');
-        const changebtn=document.querySelector('#change');
-        const resetbtn=document.querySelector('#reset');
-        const token = "YOUR-JSONPOWERDB-TOKEN";
+        // Buttons and form setup
+        const submitbtn = document.querySelector('#submit');
+        const changebtn = document.querySelector('#change');
+        const resetbtn = document.querySelector('#reset');
+        const rollInput = document.getElementById("roll");
+
+        // JPDB configuration
+        const token = "YOUR-JPDB-TOKEN";
         const dbName = "STUDENT-TABLE";
         const relName = "SCHOOL-DB";
-        const primarykey="Roll-No";
-        let current_rec_no=null;
-        document.getElementById("roll").focus();
+        const primarykey = "Roll-No";
 
+        // Used to track current record number for updates
+        let current_rec_no = null;
+
+        // Focus on Roll No input on page load
+        rollInput.focus();
+
+        // Function to enable or disable buttons and apply styling
         function setButtonState(button, enabled) {
             button.disabled = enabled;
             button.style.backgroundColor = enabled ? 'rgba(46, 46, 46, 0.256)' : 'black';
         }
 
-        
-        changebtn.addEventListener("click",async()=>{
-            const formele=document.querySelector('#myform');
-            
+        // UPDATE logic: handles updating an existing record
+        changebtn.addEventListener("click", async () => {
+            const formele = document.querySelector('#myform');
+
+            // Ensure all fields are valid before update
             if (!formele.checkValidity()) {
                 alert("Please fill all required fields before updating.");
                 return;
             }
-            const form= new FormData(formele)
-            const jsonObj=Object.fromEntries(form.entries())
-            jsonObj['Roll-No']=Number(jsonObj['Roll-No'])
-            
-            if (jsonObj['Roll-No']!==0 && current_rec_no!==null){
-                const updatedrequest= createUPDATERecordRequest(token, JSON.stringify(jsonObj), dbName, relName, current_rec_no)
-                const updatedres=await executeCommandAsync(updatedrequest,"/api/iml")
-                alert(updatedres.message)
-                resetbtn.click();
-            }
-           
-            setButtonState(submitbtn,true)
-            setButtonState(resetbtn,true)
-            setButtonState(changebtn,true)
-            current_rec_no=null;
-            return;
-        })
 
+            // Get form data and convert to JSON object
+            const form = new FormData(formele);
+            const jsonObj = Object.fromEntries(form.entries());
+
+            // Only proceed if current record exists
+            if (current_rec_no !== null) {
+                // Create update request and send it
+                const updatedrequest = createUPDATERecordRequest(token, JSON.stringify(jsonObj), dbName, relName, current_rec_no);
+                const updatedres = await executeCommandAsync(updatedrequest, "/api/iml");
+
+                // Alert user of result
+                alert(updatedres.message);
+
+                // Clear form and reset buttons
+                resetbtn.click();
+                current_rec_no = null;
+            }
+        });
+
+        // RESET logic: resets form inputs and button states
+        resetbtn.addEventListener("click", () => {
+            rollInput.disabled = false;
+            rollInput.focus();
+            setButtonState(submitbtn, true);
+            setButtonState(changebtn, true);
+            setButtonState(resetbtn, true);
+            current_rec_no = null;
+
+            // Clear all inputs
+            document.querySelectorAll('input').forEach(input => {
+                input.value = '';
+            });
+        });
+
+        // Utility function: handles API request with async/await
         function executeCommandAsync(reqString, apiEndPointUrl) {
             const url = baseUrl + apiEndPointUrl;
             return $.post(url, reqString)
@@ -101,71 +130,69 @@
                 .catch(error => JSON.parse(error.responseText));
         }
 
-        async function notice(){
-            const inputs=document.querySelectorAll('input')
-            inputs.forEach(input=>{
-                if (input.name!="Roll-No"){
-                    input.value='';
+        // NOTICE logic: called when Roll No. is changed
+        async function notice() {
+            // Clear all fields except Roll No
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (input.name !== "Roll-No") {
+                    input.value = '';
                 }
-            })
-            const id=document.getElementById('roll');
-            
-            const jsonstr={"Roll-No":Number(id.value)}
-            const getrequest=createGET_BY_KEYRequest(token,dbName,relName,JSON.stringify(jsonstr))
+            });
 
-            const getresponse=await executeCommandAsync(getrequest,"/api/irl")
-            
-            
-            if (getresponse.status===400){
-                setButtonState(submitbtn,false)
-                setButtonState(resetbtn,false)
-                setButtonState(changebtn,true)
-                
-            }
-            else{
-                const data_rec=JSON.parse(getresponse.data)
-                const data=data_rec.record
-               
-                Object.keys(data).forEach(value=>{
-                    document.querySelector(`input[name="${value}"]`).value=data[value]
-                })
+            // Prepare data to fetch existing record
+            const jsonstr = { "Roll-No": Number(rollInput.value) };
+            const getrequest = createGET_BY_KEYRequest(token, dbName, relName, JSON.stringify(jsonstr));
+            const getresponse = await executeCommandAsync(getrequest, "/api/irl");
 
-                current_rec_no=data_rec.rec_no;
-                setButtonState(changebtn,false)
-                setButtonState(resetbtn,false)
-                setButtonState(submitbtn,true)
-                 
+            if (getresponse.status === 400) {
+                // Record not found: Enable Save
+                setButtonState(submitbtn, false);
+                setButtonState(resetbtn, false);
+                setButtonState(changebtn, true);
+                rollInput.disabled = false;
+            } else {
+                // Record found: Populate fields for update
+                const data_rec = JSON.parse(getresponse.data);
+                const data = data_rec.record;
+
+                // Fill form with existing record values
+                Object.keys(data).forEach(value => {
+                    document.querySelector(`input[name="${value}"]`).value = data[value];
+                });
+
+                // Store record number for update
+                current_rec_no = data_rec.rec_no;
+
+                // Disable Roll No input and enable Update/Reset
+                rollInput.disabled = true;
+                setButtonState(changebtn, false);
+                setButtonState(resetbtn, false);
+                setButtonState(submitbtn, true);
             }
-            
-           
         }
-        
-        
-        async function put(event){
-            event.preventDefault()
-        
-            
-            const formData=new FormData(event.target)
 
+        // PUT logic: handles inserting a new record
+        async function put(event) {
+            event.preventDefault();
+
+            // Convert form data to object
+            const formData = new FormData(event.target);
             const formObject = Object.fromEntries(formData.entries());
             formObject["Roll-No"] = Number(formObject["Roll-No"]);
-            if (formObject['Roll-No']){
-                
-                const request = createSETRequest(token, JSON.stringify(formObject), dbName, relName, "PUT", primarykey);
-            
-                const response=await executeCommandAsync(request,"/api/iml/set")
-                alert(response.message);
-                resetbtn.click();
-                setButtonState(resetbtn,true)
-                setButtonState(submitbtn,true)
-                setButtonState(changebtn,true)
-                
-            }
-            else{
 
+            // Only insert if Roll No is valid
+            if (formObject['Roll-No']) {
+                // Create and send insert request
+                const request = createSETRequest(token, JSON.stringify(formObject), dbName, relName, "PUT", primarykey);
+                const response = await executeCommandAsync(request, "/api/iml/set");
+                alert(response.message);
+
+                // Reset form after saving
+                resetbtn.click();
+            } else {
                 alert("Roll No. is empty");
             }
-                    
         }
     </script>
 </body>
